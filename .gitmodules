@@ -1,3 +1,15 @@
 [submodule "sequences"]
 	path = sequences
 	url = https://github.com/taocpp/sequences.git
+[submodule "examples/nn/mnist"]
+	path = examples/nn/mnist
+	url = https://github.com/wichtounet/mnist.git
+[submodule "examples/nn/cereal"]
+	path = examples/nn/cereal
+	url = https://github.com/USCiLab/cereal.git
+[submodule "examples/nn/range-v3"]
+	path = examples/nn/range-v3
+	url = https://github.com/ericniebler/range-v3.git
+[submodule "examples/nn/cifar-10"]
+	path = examples/nn/cifar-10
+	url = https://github.com/wichtounet/cifar-10.git
