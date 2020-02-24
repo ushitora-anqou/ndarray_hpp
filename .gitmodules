@@ -1,0 +1,3 @@
+[submodule "sequences"]
+	path = sequences
+	url = https://github.com/taocpp/sequences.git
