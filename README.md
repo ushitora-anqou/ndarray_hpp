@@ -34,6 +34,10 @@ int main()
 }
 ```
 
+## More examples?
+
+See `examples/`.
+
 ## License
 
 MIT.
