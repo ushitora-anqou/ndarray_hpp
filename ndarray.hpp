@@ -21,7 +21,7 @@ struct ndarray {
     }
     static constexpr auto shape()
     {
-        return std::make_tuple(Shape...);
+        return std::array<size_t, sizeof...(Shape)>{Shape...};
     }
     static constexpr auto size()
     {
@@ -90,7 +90,7 @@ struct ndarray {
     void each(Func func) const
     {
         if constexpr (N < dim()) {
-            for (size_t i = 0; i < std::get<N>(shape()); i++)
+            for (size_t i = 0; i < shape().at(N); i++)
                 each<N + 1>([i, func](auto&&... args) {
                     return func(i, std::forward<decltype(args)>(args)...);
                 });
@@ -194,15 +194,14 @@ struct ndarray {
     }
 
 private:
-    template <size_t N = 0, class... Types1, class... Types2>
-    size_t index(std::tuple<Types1...> shape, std::tuple<Types2...> indices,
+    template <size_t N = 0, size_t Size, class... Types2>
+    size_t index(std::array<size_t, Size> shape, std::tuple<Types2...> indices,
                  size_t sum = 0) const
     {
-        static_assert(sizeof...(Types1) == sizeof...(Types2));
-        if constexpr (N < sizeof...(Types1)) {
-            return index<N + 1>(
-                shape, indices,
-                sum * std::get<N>(shape) + std::get<N>(indices));
+        static_assert(Size == sizeof...(Types2));
+        if constexpr (N < Size) {
+            return index<N + 1>(shape, indices,
+                                sum * shape.at(N) + std::get<N>(indices));
         }
         else {
             return sum;
@@ -227,7 +226,7 @@ void broadcast(const ndarray<Float, LShape...>& lhs,
         constexpr auto RN = LN - lhs_dim + rhs_dim;
         if constexpr (RN >=
                       rhs_dim /* RN is unsigned, so this means RN < 0 */) {
-            for (size_t i = 0; i < std::get<LN>(lhs.shape()); i++)
+            for (size_t i = 0; i < lhs.shape().at(LN); i++)
                 broadcast<LN + 1>(
                     lhs, rhs,
                     [i, func](auto&&... args) {
@@ -239,8 +238,8 @@ void broadcast(const ndarray<Float, LShape...>& lhs,
                     },
                     rhs_picker);
         }
-        else if constexpr (std::get<LN>(lhs_shape) == std::get<RN>(rhs_shape)) {
-            for (size_t i = 0; i < std::get<LN>(lhs.shape()); i++)
+        else if constexpr (lhs_shape.at(LN) == rhs_shape.at(RN)) {
+            for (size_t i = 0; i < lhs.shape().at(LN); i++)
                 broadcast<LN + 1>(
                     lhs, rhs,
                     [i, func](auto&&... args) {
@@ -255,8 +254,8 @@ void broadcast(const ndarray<Float, LShape...>& lhs,
                             i, std::forward<decltype(args)>(args)...);
                     });
         }
-        else if constexpr (std::get<RN>(rhs_shape) == 1) {
-            for (size_t i = 0; i < std::get<LN>(lhs.shape()); i++)
+        else if constexpr (rhs_shape.at(RN) == 1) {
+            for (size_t i = 0; i < lhs.shape().at(LN); i++)
                 broadcast<LN + 1>(
                     lhs, rhs,
                     [i, func](auto&&... args) {
@@ -271,8 +270,8 @@ void broadcast(const ndarray<Float, LShape...>& lhs,
                             0, std::forward<decltype(args)>(args)...);
                     });
         }
-        else if constexpr (std::get<LN>(lhs_shape) == 1) {
-            for (size_t i = 0; i < std::get<RN>(rhs.shape()); i++)
+        else if constexpr (lhs_shape.at(LN) == 1) {
+            for (size_t i = 0; i < rhs.shape().at(RN); i++)
                 broadcast<LN + 1>(
                     lhs, rhs,
                     [i, func](auto&&... args) {
@@ -330,22 +329,22 @@ auto broadcasted_t_impl(const ndarray<Float, LShape...>& lhs,
         if constexpr (RN >=
                       rhs_dim /* RN is unsigned, so this means RN < 0 */) {
             return tao::seq::concatenate_t<
-                tao::seq::integer_sequence<size_t, std::get<LN>(lhs_shape)>,
+                tao::seq::integer_sequence<size_t, lhs_shape.at(LN)>,
                 decltype(broadcasted_t_impl<LN + 1>(lhs, rhs))>();
         }
-        else if constexpr (std::get<LN>(lhs_shape) == std::get<RN>(rhs_shape)) {
+        else if constexpr (lhs_shape.at(LN) == rhs_shape.at(RN)) {
             return tao::seq::concatenate_t<
-                tao::seq::integer_sequence<size_t, std::get<LN>(lhs_shape)>,
+                tao::seq::integer_sequence<size_t, lhs_shape.at(LN)>,
                 decltype(broadcasted_t_impl<LN + 1>(lhs, rhs))>();
         }
-        else if constexpr (std::get<RN>(rhs_shape) == 1) {
+        else if constexpr (rhs_shape.at(RN) == 1) {
             return tao::seq::concatenate_t<
-                tao::seq::integer_sequence<size_t, std::get<LN>(lhs_shape)>,
+                tao::seq::integer_sequence<size_t, lhs_shape.at(LN)>,
                 decltype(broadcasted_t_impl<LN + 1>(lhs, rhs))>();
         }
-        else if constexpr (std::get<LN>(lhs_shape) == 1) {
+        else if constexpr (lhs_shape.at(LN) == 1) {
             return tao::seq::concatenate_t<
-                tao::seq::integer_sequence<size_t, std::get<RN>(rhs_shape)>,
+                tao::seq::integer_sequence<size_t, rhs_shape.at(RN)>,
                 decltype(broadcasted_t_impl<LN + 1>(lhs, rhs))>();
         }
     }
@@ -505,7 +504,7 @@ inline void axis_each(const ndarray<Float, Shape...>& src, Func func,
     static_assert(Axis < dim);
 
     if constexpr (N < dim) {
-        for (size_t i = 0; i < std::get<N>(shape); i++) {
+        for (size_t i = 0; i < shape.at(N); i++) {
             if constexpr (N == Axis) {
                 axis_each<Axis, N + 1>(
                     src, func, [i, picker](auto&&... indices) {
@@ -547,7 +546,7 @@ inline auto axis_each_t(const ndarray<Float, Shape...>& src)
         }
         else {
             return tao::seq::concatenate_t<
-                tao::seq::integer_sequence<size_t, std::get<N>(shape)>,
+                tao::seq::integer_sequence<size_t, shape.at(N)>,
                 decltype(axis_each_t<Axis, N + 1>(src))>();
         }
     }
@@ -654,7 +653,7 @@ inline void reversed_each(const ndarray<Float, Shape...>& src, Func func,
     constexpr auto shape = ndarray<Float, Shape...>::shape();
 
     if constexpr (N > 0) {
-        for (size_t i = 0; i < std::get<N - 1>(shape); i++) {
+        for (size_t i = 0; i < shape.at(N - 1); i++) {
             reversed_each<N - 1>(
                 src,
                 [i, func](auto&&... indices) {

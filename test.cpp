@@ -14,7 +14,10 @@ void test_ndarray()
 
     {
         auto ndary = iota234f;
-        assert(ndary.shape() == std::make_tuple(2, 3, 4));
+        {
+            auto shape_ans = std::array<size_t, 3>{2, 3, 4};
+            assert(ndary.shape() == shape_ans);
+        }
         assert(ndary.dim() == 3);
         assert(ndary.size() == 24);
         assert(ndary(1, 2, 3) == 24);
