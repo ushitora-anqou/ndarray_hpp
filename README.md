@@ -4,7 +4,7 @@ Yet another type-safe N-dim array in C++17.
 
 ## Usage
 
-```
+```cpp
 #include <iostream>
 
 #include "ndarray.hpp"
